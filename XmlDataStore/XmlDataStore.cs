@@ -12,11 +12,16 @@ namespace XmlDataStore
     {
         private string path;
         private string context;
+        private XDocument xmlDoc;
+        private bool autoSave = false;
 
-        public XmlDataStore(string path, string context)
+        public XmlDataStore(string path, string context, bool autoSave = true)
         {
             this.path = path;
             this.context = context;
+            this.autoSave = autoSave;
+            if (File.Exists(path))
+                xmlDoc = XDocument.Load(path);
         }
 
         public object GetObject(string property)
@@ -45,10 +50,7 @@ namespace XmlDataStore
 
         public string GetString(string property)
         {
-            XDocument xmlDoc;
-            if (File.Exists(path))
-                xmlDoc = XDocument.Load(path);
-            else
+            if(xmlDoc == null)
                 return null;
             if (xmlDoc.Element(context).Element(property) != null)
             {
@@ -80,10 +82,8 @@ namespace XmlDataStore
 
         public void SetString(string property, string value)
         {
-            XDocument xmlDoc;
-            if (File.Exists(path))
+            if (xmlDoc != null)
             {
-                xmlDoc = XDocument.Load(path);
                 if (xmlDoc.Element(context).Element(property) != null)
                 {
                     XElement element = xmlDoc.Element(context).Element(property);
@@ -91,10 +91,20 @@ namespace XmlDataStore
                 }
                 else
                     xmlDoc.Element(context).Add(new XElement(property, value));
+                if (autoSave)
+                    xmlDoc.Save(path);
             }
             else
+            {
                 xmlDoc = new XDocument(new XElement(context, new XElement(property, value)));
-            xmlDoc.Save(path);
+                xmlDoc.Save(path);
+            }
+        }
+
+        public void Save()
+        {
+            if(xmlDoc != null)
+                xmlDoc.Save(path);
         }
     }
 }
